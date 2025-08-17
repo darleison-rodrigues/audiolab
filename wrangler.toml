@@ -12,10 +12,13 @@ binding = "AI"
 binding = "audiolab"
 bucket_name = "audiolab"
 
-
 [[durable_objects.bindings]]
 name = "AUDIOLAB"
 class_name = "AudioLab"
+
+[[migrations]]
+new_sqlite_classes = ["AudioLab"]
+tag = "v1"
 
 [assets]
 directory = "public"
