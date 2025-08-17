@@ -23,9 +23,5 @@ tag = "v1"
 [assets]
 directory = "public"
 
-[[migrations]]
-tag = "v1"
-new_classes = [ "AudioLab" ]
-
 [observability.logs]
 enabled = true
