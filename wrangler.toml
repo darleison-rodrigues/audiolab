@@ -1,0 +1,28 @@
+name = 'audiolab'
+main = "src/server.ts"
+compatibility_date = "2024-08-15"
+compatibility_flags = ["nodejs_compat"]
+
+# AI binding for machine learning models
+[ai]
+binding = "AI"
+
+# R2 Storage binding for image files
+[[r2_buckets]]
+binding = "audiolab"
+bucket_name = "audiolab"
+
+
+[[durable_objects.bindings]]
+name = "AUDIOLAB"
+class_name = "AudioLab"
+
+[assets]
+directory = "public"
+
+[[migrations]]
+tag = "v1"
+new_classes = [ "AudioLab" ]
+
+[observability.logs]
+enabled = true

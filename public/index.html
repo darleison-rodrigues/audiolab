@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARIA WAVE - Digital Music Station</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            color: #e2e8f0;
+        }
+        
+        /* Subtle floating orbs */
+        .ambient-orbs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.05));
+            animation: float 25s ease-in-out infinite;
+            filter: blur(1px);
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.3;
+            }
+            33% {
+                transform: translateY(-30px) translateX(20px);
+                opacity: 0.5;
+            }
+            66% {
+                transform: translateY(-10px) translateX(-15px);
+                opacity: 0.4;
+            }
+        }
+        
+        .radio-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        /* Subtle grid overlay */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .station-header {
+            position: absolute;
+            top: 50px;
+            text-align: center;
+            z-index: 20;
+        }
+        
+        .station-logo {
+            font-family: 'Inter', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 300;
+            background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .station-tagline {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 300;
+        }
+        
+        .main-interface {
+            display: flex;
+            gap: 60px;
+            align-items: center;
+            justify-content: center;
+            z-index: 15;
+            margin-top: 40px;
+        }
+        
+        .visualizer-panel {
+            width: 480px;
+            height: 320px;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .freq-display {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #64748b;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 6px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.08);
+            backdrop-filter: blur(10px);
+        }
+        
+        .waveform-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+        }
+        
+        .elegant-eq {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+        }
+        
+        .eq-bar {
+            width: 3px;
+            background: linear-gradient(to top, 
+                rgba(99, 102, 241, 0.6) 0%, 
+                rgba(139, 92, 246, 0.4) 50%,
+                rgba(168, 85, 247, 0.3) 100%);
+            border-radius: 2px;
+            transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .control-interface {
+            width: 400px;
+            background: rgba(15, 23, 42, 0.2);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            position: relative;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .track-display {
+            text-align: center;
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 5;
+        }
+        
+        .track-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .track-artist {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            font-weight: 400;
+        }
+        
+        .track-source {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #64748b;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 28px 0;
+            position: relative;
+            z-index: 5;
+        }
+        
+        .ctrl-btn {
+            width: 48px;
+            height: 48px;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            color: #94a3b8;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .ctrl-btn:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-1px);
+            color: #e2e8f0;
+        }
+        
+        .play-btn {
+            width: 56px;
+            height: 56px;
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.2);
+            color: #e2e8f0;
+        }
+        
+        .play-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.1);
+        }
+        
+        .progress-area {
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 5;
+        }
+        
+        .progress-track {
+            width: 100%;
+            height: 2px;
+            background: rgba(148, 163, 184, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 1px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(99, 102, 241, 0.8) 0%, 
+                rgba(139, 92, 246, 0.6) 100%);
+            width: 0%;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -1px;
+            width: 2px;
+            height: 6px;
+            background: rgba(226, 232, 240, 0.9);
+            border-radius: 1px;
+        }
+        
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 300;
+        }
+        
+        .loading-state {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: #94a3b8;
+            text-align: center;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-interface {
+                flex-direction: column;
+                gap: 40px;
+                margin-top: 20px;
+            }
+            
+            .station-header {
+                top: 30px;
+            }
+            
+            .station-logo {
+                font-size: 2rem;
+                letter-spacing: 6px;
+            }
+            
+            .visualizer-panel, .control-interface {
+                width: 85vw;
+                max-width: 420px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .station-logo {
+                font-size: 1.6rem;
+                letter-spacing: 4px;
+            }
+            
+            .station-tagline {
+                font-size: 0.7rem;
+                letter-spacing: 1px;
+            }
+            
+            .track-title {
+                font-size: 1.2rem;
+            }
+            
+            .track-artist {
+                font-size: 0.9rem;
+            }
+            
+            .visualizer-panel {
+                height: 260px;
+            }
+            
+            .ctrl-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 12px;
+            }
+            
+            .play-btn {
+                width: 52px;
+                height: 52px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-orbs" id="ambientOrbs"></div>
+    <div class="grid-overlay"></div>
+    
+    <div class="radio-container">
+        <div class="station-header">
+            <div class="station-logo">ARIA WAVE</div>
+            <div class="station-tagline">digital music station</div>
+        </div>
+        
+        <div class="main-interface">
+            <div class="visualizer-panel">
+                <div class="freq-display">108.8 FM</div>
+                <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                <div class="elegant-eq" id="elegantEq"></div>
+            </div>
+            
+            <div class="control-interface">
+                <div class="track-display" id="trackDisplay">
+                    <div class="loading-state" id="loadingState">Initializing...</div>
+                    <div class="track-title" id="trackTitle" style="display: none;"></div>
+                    <div class="track-artist" id="trackArtist" style="display: none;"></div>
+                    <div class="track-source" id="trackSource" style="display: none;"></div>
+                </div>
+                
+                <div class="progress-area" id="progressArea" style="display: none;">
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="time-info">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="ctrl-btn" id="prevBtn" title="Previous Track">⏮</button>
+                    <button class="ctrl-btn" id="stopBtn" title="Stop">⏹</button>
+                    <button class="ctrl-btn play-btn" id="playBtn" title="Play/Pause">▶</button>
+                    <button class="ctrl-btn" id="nextBtn" title="Next Track">⏭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ElegantRadio {
+            constructor() {
+                this.audioContext = null;
+                this.analyser = null;
+                this.source = null;
+                this.dataArray = null;
+                this.currentTrack = 0;
+                this.isPlaying = false;
+                this.audioElement = new Audio();
+
+                this.tracks = [
+                    {
+                        title: "Midnight Cascade",
+                        artist: "Luna Synthesis",
+                        source: "Aria Records",
+                        url: "https://www.soundjay.com/misc/beep-07a.wav"
+                    },
+                    {
+                        title: "Ethereal Motion",
+                        artist: "Quantum Ensemble",
+                        source: "Digital Harmony",
+                        url: "https://www.soundjay.com/misc/beep-10.wav"
+                    },
+                    {
+                        title: "Velvet Horizon",
+                        artist: "Stellar Drift",
+                        source: "Wave Studio",
+                        url: "https://www.soundjay.com/misc/beep-28.wav"
+                    }
+                ];
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.createAmbientOrbs();
+                this.createEQBars();
+                this.setupVisualization();
+                this.loadTrack(0);
+            }
+            
+            setupEventListeners() {
+                document.getElementById('playBtn').addEventListener('click', () => this.togglePlay());
+                document.getElementById('prevBtn').addEventListener('click', () => this.previousTrack());
+                document.getElementById('nextBtn').addEventListener('click', () => this.nextTrack());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stopTrack());
+                
+                this.audioElement.addEventListener('ended', () => this.nextTrack());
+                this.audioElement.addEventListener('timeupdate', () => this.updateProgress());
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.togglePlay();
+                    } else if (e.code === 'ArrowLeft') {
+                        this.previousTrack();
+                    } else if (e.code === 'ArrowRight') {
+                        this.nextTrack();
+                    }
+                });
+            }
+            
+            createAmbientOrbs() {
+                const orbContainer = document.getElementById('ambientOrbs');
+                const orbCount = 6;
+                
+                for (let i = 0; i < orbCount; i++) {
+                    const orb = document.createElement('div');
+                    orb.className = 'orb';
+                    const size = Math.random() * 200 + 100;
+                    orb.style.width = size + 'px';
+                    orb.style.height = size + 'px';
+                    orb.style.left = Math.random() * 100 + '%';
+                    orb.style.top = Math.random() * 100 + '%';
+                    orb.style.animationDelay = Math.random() * 10 + 's';
+                    orb.style.animationDuration = (Math.random() * 10 + 20) + 's';
+                    
+                    orbContainer.appendChild(orb);
+                }
+            }
+            
+            createEQBars() {
+                const eqContainer = document.getElementById('elegantEq');
+                eqContainer.innerHTML = '';
+                for (let i = 0; i < 32; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'eq-bar';
+                    bar.style.height = '4px';
+                    eqContainer.appendChild(bar);
+                }
+            }
+            
+            setupVisualization() {
+                const canvas = document.getElementById('waveformCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                const resizeCanvas = () => {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                
+                this.animateVisualization(ctx, canvas);
+            }
+            
+            animateVisualization(ctx, canvas) {
+                const animate = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    if (this.analyser && this.isPlaying) {
+                        this.analyser.getByteFrequencyData(this.dataArray);
+                        this.drawElegantWaves(ctx, canvas);
+                        this.updateEQBars();
+                    } else {
+                        this.drawAmbientPattern(ctx, canvas);
+                    }
+                    
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+            
+            drawElegantWaves(ctx, canvas) {
+                if (!this.dataArray) return;
+                
+                const centerY = canvas.height / 2;
+                
+                // Smooth frequency visualization
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                
+                for (let i = 0; i < this.dataArray.length; i++) {
+                    const x = (i / this.dataArray.length) * canvas.width;
+                    const y = centerY - (this.dataArray[i] / 255) * (canvas.height * 0.3);
+                    
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Secondary wave
+                ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                for (let i = 0; i < this.dataArray.length; i++) {
+                    const x = (i / this.dataArray.length) * canvas.width;
+                    const y = centerY + (this.dataArray[i] / 255) * (canvas.height * 0.2);
+                    
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            drawAmbientPattern(ctx, canvas) {
+                const time = Date.now() * 0.0008;
+                const centerY = canvas.height / 2;
+                
+                // Primary ambient wave
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const y = centerY + Math.sin(x * 0.008 + time) * 15 + Math.sin(x * 0.016 + time * 0.7) * 8;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Secondary ambient wave
+                ctx.strokeStyle = 'rgba(139, 92, 246, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x < canvas.width; x += 2) {
+                    const y = centerY + Math.sin(x * 0.006 + time * 0.8 + Math.PI) * 12;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            updateEQBars() {
+                const bars = document.querySelectorAll('.eq-bar');
+                if (this.dataArray) {
+                    bars.forEach((bar, index) => {
+                        if (index < this.dataArray.length) {
+                            const height = (this.dataArray[index] / 255) * 30 + 4;
+                            bar.style.height = height + 'px';
+                        }
+                    });
+                }
+            }
+            
+            loadTrack(index) {
+                this.currentTrack = index;
+                const track = this.tracks[index];
+                
+                this.audioElement.src = track.url;
+                
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('trackTitle').textContent = track.title;
+                document.getElementById('trackArtist').textContent = track.artist;
+                document.getElementById('trackSource').textContent = track.source;
+                
+                document.getElementById('trackTitle').style.display = 'block';
+                document.getElementById('trackArtist').style.display = 'block';
+                document.getElementById('trackSource').style.display = 'block';
+                document.getElementById('progressArea').style.display = 'block';
+            }
+            
+            setupAudioContext() {
+                if (this.audioContext) return;
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.source = this.audioContext.createMediaElementSource(this.audioElement);
+                    this.analyser = this.audioContext.createAnalyser();
+                    this.analyser.fftSize = 256;
+                    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                    this.source.connect(this.analyser);
+                    this.analyser.connect(this.audioContext.destination);
+                } catch (error) {
+                    console.error('Audio context setup failed:', error);
+                }
+            }
+            
+            async togglePlay() {
+                this.setupAudioContext();
+                if (this.audioContext.state === 'suspended') {
+                    await this.audioContext.resume();
+                }
+                
+                if (this.isPlaying) {
+                    this.pause();
+                } else {
+                    this.play();
+                }
+            }
+            
+            play() {
+                this.isPlaying = true;
+                this.audioElement.play();
+                document.getElementById('playBtn').innerHTML = '⏸';
+            }
+            
+            pause() {
+                this.isPlaying = false;
+                this.audioElement.pause();
+                document.getElementById('playBtn').innerHTML = '▶';
+            }
+            
+            stopTrack() {
+                this.pause();
+                this.audioElement.currentTime = 0;
+            }
+            
+            previousTrack() {
+                const wasPlaying = this.isPlaying;
+                this.currentTrack = (this.currentTrack - 1 + this.tracks.length) % this.tracks.length;
+                this.loadTrack(this.currentTrack);
+                if (wasPlaying) this.play();
+            }
+            
+            nextTrack() {
+                const wasPlaying = this.isPlaying;
+                this.currentTrack = (this.currentTrack + 1) % this.tracks.length;
+                this.loadTrack(this.currentTrack);
+                if (wasPlaying) this.play();
+            }
+            
+            updateProgress() {
+                const { duration, currentTime } = this.audioElement;
+                if (isNaN(duration)) return;
+
+                const progress = (currentTime / duration) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+                
+                const formatTime = (time) => {
+                    const minutes = Math.floor(time / 60);
+                    const seconds = Math.floor(time % 60);
+                    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+
+                document.getElementById('currentTime').textContent = formatTime(currentTime);
+                document.getElementById('totalTime').textContent = formatTime(duration);
+            }
+        }
+        
+        // Initialize the Elegant Radio on page load
+        window.addEventListener('load', () => {
+            new ElegantRadio();
+        });
+    </script>
+</body>
+</html>
